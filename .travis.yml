@@ -1,0 +1,23 @@
+sudo: required
+
+services:
+  - docker
+
+notifications:
+  email:
+    on_success: never
+    on_failure: change
+
+install:
+
+script:
+  - export NODE_VERSION=$(wget -qO- https://nodejs.org/dist/latest/ | sed -nE 's|.*>node-v(.*)\.pkg</a>.*|\1|p')
+  - echo "BUILD NODEJS VERSION:"$NODE_VERSION
+  - export REPO=$TRAVIS_REPO_SLUG
+  - export TAG=$NODE_VERSION
+  - docker build -t $REPO:$NODE_VERSION --build-arg NODE_VERSION=$NODE_VERSION .
+
+after_success:
+  - docker images
+  - echo $DOCKER_PASS | docker login -u $DOCKER_USER --password-stdin
+  - docker push $REPO
