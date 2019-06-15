@@ -9,15 +9,22 @@ notifications:
     on_failure: change
 
 install:
+  - |
+    export REPO=$TRAVIS_REPO_SLUG
+    export BRANCH=master
+    export NODE_VERSION=$(wget -qO- https://nodejs.org/dist/latest/ | sed -nE 's|.*>node-v(.*)\.pkg</a>.*|\1|p')
+
 
 script:
-  - export NODE_VERSION=$(wget -qO- https://nodejs.org/dist/latest/ | sed -nE 's|.*>node-v(.*)\.pkg</a>.*|\1|p')
-  - echo "BUILD NODEJS VERSION:"$NODE_VERSION
-  - export REPO=$TRAVIS_REPO_SLUG
-  - export TAG=$NODE_VERSION
-  - docker build -t $REPO:$NODE_VERSION --build-arg NODE_VERSION=$NODE_VERSION .
-
-after_success:
-  - docker images
-  - echo $DOCKER_PASS | docker login -u $DOCKER_USER --password-stdin
-  - docker push $REPO
+  - docker version
+  - docker info
+  - docker pull $IMAGE || echo 'image not found'
+  - |
+    echo "Current version: $REPO:$NODE_VERSION"
+    docker pull $REPO:$NODE_VERSION || echo 'image not found'
+    if [[ "$(docker images -q $REPO:$NODE_VERSION 2> /dev/null)" == "" ]]; then
+      docker build -t $REPO:$NODE_VERSION --build-arg NODE_VERSION=$NODE_VERSION .
+      docker images
+      echo $DOCKER_PASS | docker login -u $DOCKER_USER --password-stdin
+      docker push $REPO
+    fi
